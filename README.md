@@ -44,9 +44,9 @@ JARVIS is built with a modular, agentic architecture that enables flexible, cont
 
 1. **Clone the repository**
 
-   ```bash
-   git clone https://github.com/gamkers/Project_Jarvis.git
-   cd Project_Jarvis
+   ```
+   https://github.com/thiruking/Project_Jarvis-.git
+   
    ```
 
 2. **Install Python dependencies**
