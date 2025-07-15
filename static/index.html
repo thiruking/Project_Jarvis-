@@ -1,0 +1,1723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JARVIS AI Assistant</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-cyan: #00f5ff;
+            --secondary-blue: #0080ff;
+            --dark-bg: #0a0a0f;
+            --darker-bg: #050508;
+            --card-bg: rgba(15, 15, 35, 0.8);
+            --glass-bg: rgba(0, 245, 255, 0.05);
+            --border-glow: rgba(0, 245, 255, 0.3);
+            --text-primary: #ffffff;
+            --text-secondary: #b3d9ff;
+            --success: #00ff88;
+            --warning: #ffaa00;
+            --error: #ff4444;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(0, 245, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(0, 128, 255, 0.1) 0%, transparent 50%),
+                linear-gradient(135deg, var(--darker-bg) 0%, var(--dark-bg) 100%);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 420px 1fr;
+            grid-template-rows: 100px 1fr 80px;
+            height: 100vh;
+            gap: 20px;
+            padding: 20px;
+            position: relative;
+        }
+
+        /* Glassmorphism cards */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-glow);
+            border-radius: 20px;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        /* Top Voice Animation */
+        .voice-animation {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .voice-bars {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .voice-bar {
+            width: 5px;
+            background: linear-gradient(to top, var(--primary-cyan), var(--secondary-blue));
+            border-radius: 3px;
+            animation: voiceIdle 2.5s ease-in-out infinite;
+            filter: drop-shadow(0 0 5px var(--primary-cyan));
+        }
+
+        .voice-bar:nth-child(1) { height: 25px; animation-delay: 0s; }
+        .voice-bar:nth-child(2) { height: 35px; animation-delay: 0.1s; }
+        .voice-bar:nth-child(3) { height: 30px; animation-delay: 0.2s; }
+        .voice-bar:nth-child(4) { height: 45px; animation-delay: 0.3s; }
+        .voice-bar:nth-child(5) { height: 50px; animation-delay: 0.4s; }
+        .voice-bar:nth-child(6) { height: 45px; animation-delay: 0.5s; }
+        .voice-bar:nth-child(7) { height: 30px; animation-delay: 0.6s; }
+        .voice-bar:nth-child(8) { height: 35px; animation-delay: 0.7s; }
+        .voice-bar:nth-child(9) { height: 25px; animation-delay: 0.8s; }
+
+        @keyframes voiceIdle {
+            0%, 100% { transform: scaleY(0.4); opacity: 0.6; }
+            50% { transform: scaleY(1); opacity: 1; }
+        }
+
+        @keyframes voiceActive {
+            0%, 100% { transform: scaleY(0.6); opacity: 0.8; }
+            50% { transform: scaleY(1.8); opacity: 1; }
+        }
+
+        .voice-active .voice-bar {
+            animation: voiceActive 0.2s ease-in-out infinite;
+        }
+
+        .status-display {
+            position: absolute;
+            right: 30px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Orbitron', monospace;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 10px var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* Chat Section - Left, full height */
+        .chat-section {
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 420px;
+            max-width: 95vw;
+            min-width: 320px;
+            z-index: 100;
+            background: var(--glass-bg);
+            border-radius: 0 20px 20px 0;
+            box-shadow: 2px 0 32px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            padding: 25px 0 25px 0;
+            height: 100vh;
+            /* PATCH: Ensure chat-messages fills all space between header and input */
+        }
+        .chat-header {
+            text-align: center;
+            padding: 15px;
+            border-bottom: 1px solid var(--border-glow);
+            margin-bottom: 20px;
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+            font-size: 16px;
+            color: var(--primary-cyan);
+            text-shadow: 0 0 10px var(--primary-cyan);
+        }
+
+        .chat-messages {
+            flex: 1 1 0%;
+            min-height: 0;
+            max-height: none;
+            height: auto;
+            overflow-y: auto;
+            padding: 10px 25px;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            scrollbar-color: var(--primary-cyan) transparent;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            display: none;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            padding: 15px 20px;
+            border-radius: 15px;
+            max-width: 90%;
+            word-wrap: break-word;
+            animation: messageSlide 0.4s ease-out;
+            font-weight: 400;
+            line-height: 1.5;
+            backdrop-filter: blur(10px);
+        }
+
+        .user-message {
+            background: linear-gradient(135deg, rgba(0, 245, 255, 0.2), rgba(0, 128, 255, 0.1));
+            margin-left: auto;
+            text-align: right;
+            border: 1px solid rgba(0, 245, 255, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 245, 255, 0.1);
+        }
+
+        .ai-message {
+            background: linear-gradient(135deg, rgba(0, 128, 255, 0.2), rgba(0, 245, 255, 0.1));
+            margin-right: auto;
+            border: 1px solid rgba(0, 128, 255, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 128, 255, 0.1);
+        }
+
+        @keyframes messageSlide {
+            from { opacity: 0; transform: translateY(30px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .chat-input {
+            padding: 0 25px 0 1px;
+            margin-top: 0;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: flex-end;
+        }
+
+        /* Make sure chat-input is always at the bottom */
+        .chat-section form.chat-input {
+            margin-top: auto;
+            margin-bottom: 25px;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 15px 20px;
+            background: rgba(0, 245, 255, 0.1);
+            border: 1px solid var(--border-glow);
+            border-radius: 15px;
+            color: var(--text-primary);
+            outline: none;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .chat-input input:focus {
+            border-color: var(--primary-cyan);
+            box-shadow: 0 0 20px rgba(0, 245, 255, 0.3);
+            transform: scale(1.02);
+        }
+
+        .chat-btn {
+            padding: 15px 20px;
+            background: linear-gradient(135deg, var(--primary-cyan), var(--secondary-blue));
+            border: none;
+            border-radius: 15px;
+            color: var(--dark-bg);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 245, 255, 0.3);
+        }
+
+        .chat-btn:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 8px 25px rgba(0, 245, 255, 0.4);
+        }
+
+        .voice-btn {
+            background: linear-gradient(135deg, var(--success), #00cc66);
+            font-size: 16px;
+            min-width: 50px;
+        }
+
+        .voice-btn.recording {
+            background: linear-gradient(135deg, var(--error), #cc0000);
+            animation: recordingPulse 1s infinite;
+        }
+
+        @keyframes recordingPulse {
+            0%, 100% { box-shadow: 0 4px 15px rgba(255, 68, 68, 0.3); }
+            50% { box-shadow: 0 4px 25px rgba(255, 68, 68, 0.6); }
+        }
+
+        /* Arc Reactor Center */
+        .arc-reactor-section {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 90;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 300px;
+            pointer-events: none;
+        }
+
+        .arc-reactor {
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            background: 
+                radial-gradient(circle at 30% 30%, #ffffff 0%, var(--primary-cyan) 20%, var(--secondary-blue) 50%, #001a4d 80%, var(--dark-bg) 100%);
+            position: relative;
+            animation: reactorPulse 3s ease-in-out infinite;
+            box-shadow: 
+                0 0 60px var(--primary-cyan),
+                inset 0 0 60px rgba(0, 245, 255, 0.3),
+                0 0 100px rgba(0, 245, 255, 0.2);
+            filter: drop-shadow(0 0 30px var(--primary-cyan));
+        }
+
+        @keyframes reactorPulse {
+            0%, 100% { 
+                transform: scale(1);
+                box-shadow: 0 0 60px var(--primary-cyan), inset 0 0 60px rgba(0, 245, 255, 0.3);
+            }
+            50% { 
+                transform: scale(1.08);
+                box-shadow: 0 0 100px var(--primary-cyan), inset 0 0 100px rgba(0, 245, 255, 0.5);
+            }
+        }
+
+        .reactor-core {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 70px;
+            height: 70px;
+            background: 
+                radial-gradient(circle, #ffffff 0%, var(--primary-cyan) 30%, var(--secondary-blue) 100%);
+            border-radius: 50%;
+            animation: coreRotate 4s linear infinite;
+            box-shadow: 0 0 30px var(--primary-cyan);
+        }
+
+        @keyframes coreRotate {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        .reactor-ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid var(--primary-cyan);
+            animation: ringRotate 5s linear infinite reverse;
+            box-shadow: 0 0 20px var(--primary-cyan);
+        }
+
+        .reactor-ring:nth-child(2) {
+            width: 140px;
+            height: 140px;
+            top: 40px;
+            left: 40px;
+            border-width: 1px;
+        }
+
+        .reactor-ring:nth-child(3) {
+            width: 180px;
+            height: 180px;
+            top: 20px;
+            left: 20px;
+            animation-duration: 7s;
+            border-width: 1px;
+        }
+
+        @keyframes ringRotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Right Panel */
+        .right-panel {
+            position: fixed;
+            right: 30px;
+            bottom: 30px;
+            top: 30px;
+            width: 420px;
+            max-width: 95vw;
+            min-width: 320px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .panel-section {
+            padding: 25px;
+            flex: 1;
+        }
+
+        .panel-header {
+            text-align: center;
+            padding: 15px;
+            border-bottom: 1px solid var(--border-glow);
+            margin-bottom: 20px;
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--primary-cyan);
+            text-shadow: 0 0 10px var(--primary-cyan);
+        }
+
+        .task-item, .reminder-item {
+            background: linear-gradient(135deg, rgba(0, 128, 255, 0.1), rgba(0, 245, 255, 0.05));
+            padding: 12px 15px;
+            margin: 10px 0;
+            border-radius: 12px;
+            border-left: 3px solid var(--primary-cyan);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 245, 255, 0.2);
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .task-item:hover, .reminder-item:hover {
+            background: linear-gradient(135deg, rgba(0, 128, 255, 0.2), rgba(0, 245, 255, 0.1));
+            transform: translateX(8px) scale(1.02);
+            box-shadow: 0 4px 15px rgba(0, 245, 255, 0.2);
+        }
+
+        .task-item.completed {
+            opacity: 0.6;
+            text-decoration: line-through;
+            border-left-color: var(--success);
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(0, 245, 255, 0.05));
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(0, 245, 255, 0.1);
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            color: var(--text-primary);
+            outline: none;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .input-field:focus {
+            border-color: var(--primary-cyan);
+            box-shadow: 0 0 15px rgba(0, 245, 255, 0.3);
+            transform: scale(1.02);
+        }
+
+        /* System Resources */
+        .system-resources {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 20px;
+            position: fixed;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 0;
+            z-index: 120;
+            width: 600px;
+            max-width: 90vw;
+        }
+
+        .resource-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            font-family: 'Orbitron', monospace;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .resource-bar {
+            width: 120px;
+            height: 10px;
+            background: rgba(0, 245, 255, 0.2);
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .resource-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-cyan), var(--secondary-blue));
+            transition: width 0.5s ease;
+            border-radius: 6px;
+            box-shadow: 0 0 10px var(--primary-cyan);
+        }
+
+        .resource-fill.high {
+            background: linear-gradient(90deg, var(--warning), #ff6600);
+            box-shadow: 0 0 10px var(--warning);
+        }
+
+        .resource-fill.critical {
+            background: linear-gradient(90deg, var(--error), #cc0000);
+            box-shadow: 0 0 10px var(--error);
+        }
+
+        /* Scrollbar Styling */
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: linear-gradient(to bottom, var(--primary-cyan), var(--secondary-blue));
+            border-radius: 4px;
+            box-shadow: 0 0 5px var(--primary-cyan);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1400px) {
+            .chat-section, .right-panel {
+                width: 95vw;
+                min-width: 0;
+                max-width: 100vw;
+            }
+            .arc-reactor-section {
+                width: 100vw;
+                left: 50%;
+                transform: translate(-50%, -50%);
+            }
+        }
+        @media (max-width: 700px) {
+            .chat-section, .right-panel {
+                left: 0 !important;
+                right: 0 !important;
+                width: 100vw;
+                border-radius: 0;
+                margin: 0;
+            }
+            .arc-reactor-section {
+                width: 100vw;
+                left: 50%;
+                transform: translate(-50%, -50%);
+            }
+        }
+
+        /* Loading animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(0, 245, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--primary-cyan);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* --- PATCH: Make chat box fixed and scrollable --- */
+        .chat-section {
+            position: fixed;
+            right: 30px;
+            bottom: 30px;
+            width: 420px;
+            max-width: 95vw;
+            min-width: 320px;
+            z-index: 100;
+            background: var(--glass-bg);
+            border-radius: 20px;
+            box-shadow: 0 2px 32px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            padding: 25px;
+        }
+
+        .chat-messages {
+            flex: 1 1 0%;
+            min-height: 0;
+            max-height: none;
+            height: auto;
+            overflow-y: auto;
+            padding: 10px 25px;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            scrollbar-color: var(--primary-cyan) transparent;
+        }
+
+        @media (max-width: 700px) {
+            .chat-section {
+                right: 0;
+                left: 0;
+                border-radius: 0;
+                margin: 0;
+                width: 100vw;
+            }
+        }
+        /* --- END PATCH --- */
+    </style>
+</head>
+<body>
+    <div class="container" style="position:relative;">
+        <!-- Voice Animation -->
+        <div class="voice-animation glass-card" id="voiceAnimation" style="position:fixed;top:30px;left:50%;transform:translateX(-50%);z-index:110;width:600px;max-width:90vw;">
+            <div class="voice-bars">
+                <div class="voice-bar"></div>
+                <div class="voice-bar"></div>
+                <div class="voice-bar"></div>
+                <div class="voice-bar"></div>
+                <div class="voice-bar"></div>
+                <div class="voice-bar"></div>
+                <div class="voice-bar"></div>
+                <div class="voice-bar"></div>
+                <div class="voice-bar"></div>
+            </div>
+            <div class="status-display">
+                <div class="status-indicator" id="statusIndicator"></div>
+                <span id="statusText">JARVIS ONLINE</span>
+            </div>
+        </div>
+
+        <!-- Chat Section (Left, full height) -->
+        <div class="chat-section glass-card" id="chatSection">
+            <div class="chat-header">NEURAL INTERFACE</div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="message ai-message">
+                    Welcome to JARVIS Neural Interface. I'm your advanced AI assistant, ready to help with tasks, reminders, and intelligent conversation. How may I assist you today?
+                </div>
+            </div>
+            <!-- Move chat-input form to always be at the bottom of chat-section -->
+            <form class="chat-input" onsubmit="return sendMessage(event)">
+                <input type="text" id="messageInput" placeholder="Enter your command..." onkeypress="handleKeyPress(event)">
+                <button class="chat-btn" type="button" onclick="sendMessage()">SEND</button>
+                <button class="chat-btn voice-btn" type="button" onclick="toggleVoice()" id="voiceBtn">🎤</button>
+                <!-- REMOVE stopMicBtn button -->
+                <!-- <button class="chat-btn" type="button" id="stopMicBtn" style="display:none;background:linear-gradient(135deg,var(--error),#cc0000);color:#fff;" onclick="stopVoice()">🛑 Stop Listening</button> -->
+            </form>
+        </div>
+
+        <!-- Arc Reactor Center (Center of screen) -->
+        <div class="arc-reactor-section">
+            <div class="arc-reactor" id="arcReactor">
+                <div class="reactor-ring"></div>
+                <div class="reactor-ring"></div>
+                <div class="reactor-core"></div>
+            </div>
+        </div>
+
+        <!-- Right Panel (Tasks & Reminders) -->
+        <div class="right-panel">
+            <!-- Tasks Section -->
+            <div class="panel-section glass-card">
+                <div class="panel-header">IRON MAN CONSOLE</div>
+                <!-- REMOVE TASKS LIST AND INPUT, ADD IRONMAN IMAGE -->
+                <div style="display: flex; justify-content: center; align-items: center; height: 220px;">
+                    <img src="https://c4.wallpaperflare.com/wallpaper/973/726/355/colorful-iron-man-neon-wallpaper-preview.jpg" 
+                         alt="Iron Man" 
+                         style="max-width: 380px; max-height: 600px; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,245,255,0.15); border: 2px solid var(--primary-cyan); background: rgba(0,245,255,0.03);" />
+                </div>
+            </div>
+
+            <!-- Reminders Section -->
+            <div class="panel-section glass-card">
+                <div class="panel-header">PRIORITY ALERTS</div>
+                <div id="remindersList">
+                    <div class="reminder-item">
+                        System backup - 15:00
+                    </div>
+                    <div class="reminder-item">
+                        Neural scan - 18:30
+                    </div>
+                    <div class="reminder-item">
+                        Status report - Tomorrow
+                    </div>
+                </div>
+                <div style="margin-top: 15px;">
+                    <input type="text" id="newReminderInput" placeholder="Set priority alert..." class="input-field" onkeypress="handleReminderKeyPress(event)">
+                </div>
+            </div>
+        </div>
+
+        <!-- System Resources (keep at bottom center or as desired) -->
+        <div class="system-resources glass-card" style="position:fixed;left:50%;transform:translateX(-50%);bottom:0;z-index:120;width:600px;max-width:90vw;">
+            <div class="resource-item">
+                <span>NEURAL CPU</span>
+                <div class="resource-bar">
+                    <div class="resource-fill" id="cpuUsage" style="width: 45%;"></div>
+                </div>
+                <span id="cpuText">45%</span>
+            </div>
+            <div class="resource-item">
+                <span>QUANTUM RAM</span>
+                <div class="resource-bar">
+                    <div class="resource-fill" id="ramUsage" style="width: 60%;"></div>
+                </div>
+                <span id="ramText">60%</span>
+            </div>
+            <div class="resource-item">
+                <span>NETWORK</span>
+                <div class="resource-bar">
+                    <div class="resource-fill" id="networkUsage" style="width: 30%;"></div>
+                </div>
+                <span id="networkText">30%</span>
+            </div>
+            <div class="resource-item">
+                <span>STORAGE</span>
+                <div class="resource-bar">
+                    <div class="resource-fill" id="storageUsage" style="width: 75%;"></div>
+                </div>
+                <span id="storageText">75%</span>
+            </div>
+        </div>
+    </div>
+<script>
+        // Backend configuration
+    const BACKEND_URL = 'http://localhost:4000';
+
+    // Global variables
+    let isVoiceEnabled = false;
+    let recognition = null;
+    let conversations = [];
+    let tasks = [];
+    let reminders = [];
+    let isSpeaking = false;
+    let pendingResponse = null;
+    let autoVoiceMode = false;
+
+    // Initialize Web Speech API
+    if ('webkitSpeechRecognition' in window) {
+        recognition = new webkitSpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+        
+        recognition.onstart = function() {
+            document.getElementById('statusText').textContent = 'JARVIS - Listening...';
+            document.getElementById('voiceAnimation').classList.add('voice-active');
+            // REMOVE stopMicBtn logic
+            // document.getElementById('stopMicBtn').style.display = '';
+            const micBtn = document.getElementById('voiceBtn');
+            if (micBtn) {
+                micBtn.style.background = "linear-gradient(135deg, #ff4444, #cc0000)";
+                micBtn.textContent = '🔴';
+            }
+        };
+        
+        recognition.onresult = function(event) {
+            const transcript = event.results[0][0].transcript;
+            document.getElementById('messageInput').value = transcript;
+            sendMessage();
+        };
+        
+        recognition.onend = function() {
+            document.getElementById('voiceAnimation').classList.remove('voice-active');
+            if (!isSpeaking) {
+                document.getElementById('statusText').textContent = 'JARVIS - Ready';
+            }
+            isVoiceEnabled = false;
+            const micBtn = document.getElementById('voiceBtn');
+            if (micBtn) {
+                micBtn.style.background = "linear-gradient(135deg, var(--success), #00cc66)";
+                micBtn.textContent = '🎤';
+            }
+            // REMOVE stopMicBtn logic
+            // document.getElementById('stopMicBtn').style.display = 'none';
+            // Auto-restart voice mode if enabled and not speaking
+            if (autoVoiceMode && !isSpeaking) {
+                setTimeout(() => {
+                    if (!isVoiceEnabled && autoVoiceMode) {
+                        recognition.start();
+                        isVoiceEnabled = true;
+                        if (micBtn) {
+                            micBtn.style.background = "linear-gradient(135deg, #ff4444, #cc0000)";
+                            micBtn.textContent = '🔴';
+                        }
+                        document.getElementById('stopMicBtn').style.display = '';
+                    }
+                }, 500);
+            }
+        };
+    }
+
+    // Initialize Text-to-Speech with better control
+    function speak(text) {
+        if ('speechSynthesis' in window && text && text.trim()) {
+            // Clean up markdown-like formatting for TTS
+            let ttsText = text
+                .replace(/(\*\*|__)(.*?)\1/g, '$2') // remove bold
+                .replace(/(\*|_)(.*?)\1/g, '$2')    // remove italics
+                .replace(/`([^`]+)`/g, '$1')        // remove inline code
+                .replace(/^\s*[\*\-]\s+/gm, '')     // remove list stars/dashes at line start
+                .replace(/<\/?ul>|<\/?li>/g, '')    // remove any HTML list tags if present
+                .replace(/<[^>]+>/g, '')            // remove any other HTML tags
+                .replace(/\n/g, ' ')                // replace newlines with space
+                .replace(/\s+/g, ' ')               // collapse whitespace
+                .trim();
+
+            // Cancel any ongoing speech first
+            speechSynthesis.cancel();
+
+            // Small delay to ensure cancellation is processed
+            setTimeout(() => {
+                const utterance = new SpeechSynthesisUtterance(ttsText);
+                utterance.rate = 1.1;
+                utterance.pitch = 0.65;
+                utterance.volume = 2.0;
+
+                const voices = speechSynthesis.getVoices();
+
+                // Pick the best male voice in priority order
+                const preferredVoice = voices.find(v => v.name === 'Google UK English Male') ||
+                                    voices.find(v => v.name === 'Microsoft David Desktop') ||
+                                    voices.find(v => v.name === 'Alex') ||
+                                    voices.find(v => v.name.toLowerCase().includes('google') && v.lang.startsWith('en'));
+
+                if (preferredVoice) {
+                    utterance.voice = preferredVoice;
+                }
+
+                utterance.onstart = function() {
+                    isSpeaking = true;
+                    document.getElementById('voiceAnimation').classList.add('voice-active');
+                    document.getElementById('statusText').textContent = 'JARVIS - Speaking...';
+                };
+
+                utterance.onend = function() {
+                    isSpeaking = false;
+                    document.getElementById('voiceAnimation').classList.remove('voice-active');
+                    document.getElementById('statusText').textContent = 'JARVIS - Ready';
+                    // Auto-restart voice mode if enabled
+                    if (autoVoiceMode) {
+                        setTimeout(() => {
+                            if (!isVoiceEnabled && autoVoiceMode) {
+                                recognition.start();
+                                isVoiceEnabled = true;
+                                document.getElementById('voiceBtn').textContent = '🔴';
+                                // document.getElementById('stopMicBtn').style.display = '';
+                            }
+                        }, 500);
+                    }
+                };
+
+                utterance.onerror = function(event) {
+                    console.warn('Speech synthesis error:', event.error);
+                    isSpeaking = false;
+                    document.getElementById('voiceAnimation').classList.remove('voice-active');
+                    document.getElementById('statusText').textContent = 'JARVIS - Ready';
+                };
+
+                speechSynthesis.speak(utterance);
+            }, 100);
+        }
+    }
+
+    // Chat functionality - FIXED to prevent form submission
+    function sendMessage(event) {
+        // Prevent any form submission or page refresh
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        
+        const input = document.getElementById('messageInput');
+        const message = input.value.trim();
+        
+        if (!message) return false;
+        
+        // Add user message to chat
+        addMessageToChat(message, 'user');
+        
+        // Clear input
+        input.value = '';
+        
+        // Process message and get AI response
+        processMessage(message);
+        
+        return false; // Prevent any form submission
+    }
+
+    function addMessageToChat(message, sender) {
+        try {
+            const chatMessages = document.getElementById('chatMessages');
+            if (!chatMessages) {
+                console.error('chatMessages element not found');
+                return;
+            }
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message`;
+
+            // PATCH: Render markdown-like formatting for AI messages
+            if (sender === 'ai') {
+                // Basic replacements for bold, italics, and lists
+                let html = message
+                    .replace(/(\*\*|__)(.*?)\1/g, '<strong>$2</strong>') // bold
+                    .replace(/(\*|_)(.*?)\1/g, '<em>$2</em>') // italics
+                    .replace(/`([^`]+)`/g, '<code>$1</code>') // inline code
+                    .replace(/\n/g, '<br>'); // line breaks
+
+                // Convert * or - at line start to unordered list
+                // 1. Split into lines
+                const lines = html.split(/<br\s*\/?>/i);
+                let inList = false;
+                let htmlLines = [];
+                for (let line of lines) {
+                    if (/^\s*[\*\-]\s+/.test(line)) {
+                        if (!inList) {
+                            htmlLines.push('<ul>');
+                            inList = true;
+                        }
+                        htmlLines.push('<li>' + line.replace(/^\s*[\*\-]\s+/, '') + '</li>');
+                    } else {
+                        if (inList) {
+                            htmlLines.push('</ul>');
+                            inList = false;
+                        }
+                        htmlLines.push(line);
+                    }
+                }
+                if (inList) htmlLines.push('</ul>');
+                html = htmlLines.join('');
+                messageDiv.innerHTML = html;
+            } else {
+                messageDiv.textContent = message;
+            }
+
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // Save to conversations
+            conversations.push({
+                message: message,
+                sender: sender,
+                timestamp: new Date().toISOString()
+            });
+
+            // Debug log
+            console.log('Message added to chat:', { message, sender });
+        } catch (err) {
+            console.error('Error in addMessageToChat:', err);
+        }
+    }
+
+    // --- PATCH: Update UI after adding task/reminder via chat/voice ---
+    function processMessage(userMessage) {
+        // Try to process with backend first
+        processMessageWithBackend(userMessage);
+        // Parse for local task/reminder commands
+        parseChatCommand(userMessage);
+    }
+
+    function parseChatCommand(msg) {
+        const message = msg.toLowerCase();
+        // Add task
+        if (message.startsWith('add task') || message.startsWith('new task') || message.startsWith('create task')) {
+            const desc = msg.replace(/^(add|new|create) task/i, '').trim();
+            if (desc) {
+                sendTaskToBackend(desc).then(loadTasksQuietly);
+            }
+        }
+        // Add reminder
+        if (message.startsWith('remind me') || message.startsWith('add reminder') || message.startsWith('set reminder')) {
+            const desc = msg.replace(/^(remind me|add reminder|set reminder)/i, '').trim();
+            if (desc) {
+                sendReminderToBackend(desc).then(loadRemindersQuietly);
+            }
+        }
+        // Complete/strike task
+        if (message.match(/(i have completed|mark .* as done|complete task|finish task)/i)) {
+            let desc = '';
+            const match = message.match(/(?:completed|done|finish|complete task)\s*(.*)/i);
+            if (match && match[1]) desc = match[1].trim();
+            markTaskCompleted(desc);
+        }
+    }
+
+    async function markTaskCompleted(desc) {
+        // Try to find the task in the UI and mark as completed
+        const tasksList = document.getElementById('tasksList');
+        if (!tasksList) return;
+        let found = false;
+        const tasks = tasksList.querySelectorAll('.task-item');
+        tasks.forEach(task => {
+            if (
+                desc &&
+                task.textContent.trim().toLowerCase().includes(desc.toLowerCase())
+            ) {
+                if (!task.classList.contains('completed')) {
+                    task.classList.add('completed');
+                    // Try to update backend if possible
+                    if (task.onclick && typeof task.onclick === 'function') {
+                        task.onclick();
+                    }
+                }
+                found = true;
+            }
+        });
+        // If not found and desc is empty, mark the first incomplete task
+        if (!found && !desc) {
+            for (let task of tasks) {
+                if (!task.classList.contains('completed')) {
+                    task.classList.add('completed');
+                    if (task.onclick && typeof task.onclick === 'function') {
+                        task.onclick();
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    // Voice toggle
+    function toggleVoice() {
+        if (!recognition) {
+            alert('Voice recognition not supported in this browser');
+            return;
+        }
+        const micBtn = document.getElementById('voiceBtn');
+        if (!isVoiceEnabled) {
+            recognition.start();
+            isVoiceEnabled = true;
+            autoVoiceMode = true;
+            if (micBtn) {
+                micBtn.style.background = "linear-gradient(135deg, #00ff88, #00cc66)";
+                micBtn.textContent = '🔴';
+            }
+        } else {
+            stopVoice();
+        }
+    }
+
+    function stopVoice() {
+        if (recognition && isVoiceEnabled) {
+            recognition.stop();
+        }
+        isVoiceEnabled = false;
+        autoVoiceMode = false;
+        const micBtn = document.getElementById('voiceBtn');
+        if (micBtn) {
+            micBtn.style.background = "linear-gradient(135deg, var(--success), #00cc66)";
+            micBtn.textContent = '🎤';
+        }
+        // REMOVE stopMicBtn logic
+        // document.getElementById('stopMicBtn').style.display = 'none';
+    }
+
+    // Task management - FIXED to prevent form submission
+    function toggleTask(taskElement) {
+        taskElement.classList.toggle('completed');
+        
+        // Update task status in backend - for local tasks without IDs
+        const taskText = taskElement.textContent.trim();
+        const isCompleted = taskElement.classList.contains('completed');
+    }
+
+    async function addTask(event) {
+        // Prevent form submission
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        
+        const input = document.getElementById('newTaskInput');
+        const taskText = input.value.trim();
+        
+        if (!taskText) return false;
+        
+        // Send to backend first
+        await sendTaskToBackend(taskText);
+        
+        input.value = '';
+        return false;
+    }
+
+    async function addReminder(event) {
+        // Prevent form submission
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        
+        const input = document.getElementById('newReminderInput');
+        const reminderText = input.value.trim();
+        
+        if (!reminderText) return false;
+        
+        // Send to backend first
+        await sendReminderToBackend(reminderText);
+        
+        input.value = '';
+        return false;
+    }
+
+    // Event handlers - FIXED to prevent form submission
+    function handleKeyPress(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            event.stopPropagation();
+            sendMessage(event);
+            return false;
+        }
+    }
+
+    function handleTaskKeyPress(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            event.stopPropagation();
+            addTask(event);
+            return false;
+        }
+    }
+
+    function handleReminderKeyPress(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            event.stopPropagation();
+            addReminder(event);
+            return false;
+        }
+    }
+
+    // Backend communication functions with better error handling
+    async function processMessageWithBackend(userMessage) {
+        try {
+            const response = await fetch(`${BACKEND_URL}/api/conversation`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    user_input: userMessage
+                })
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+
+                // PATCH: If agent stopped due to iteration/time limit, show a friendly message
+                if (
+                    data.ai_response &&
+                    typeof data.ai_response === 'string' &&
+                    data.ai_response.toLowerCase().includes('agent stopped due to iteration limit')
+                ) {
+                    addMessageToChat("Sorry, your request was too complex for the agent to complete in one go. Please try to rephrase or split your request.", 'ai');
+                } else {
+                    // Add message to chat immediately
+                    addMessageToChat(data.ai_response, 'ai');
+                }
+
+                // PATCH: If tasks are returned in the response, update UI immediately (like reminders)
+                if (data.tasks && Array.isArray(data.tasks)) {
+                    updateTasksUI(data.tasks);
+                } else if (userMessage.toLowerCase().includes('task')) {
+                    await loadTasksQuietly();
+                }
+                if (data.reminders && Array.isArray(data.reminders)) {
+                    updateRemindersUI(data.reminders);
+                } else if (userMessage.toLowerCase().includes('remind')) {
+                    await loadRemindersQuietly();
+                }
+
+                // Speak the response without interrupting current speech
+                if (!isSpeaking) {
+                    speak(data.ai_response);
+                } else {
+                    // Queue the response to speak after current speech ends
+                    pendingResponse = data.ai_response;
+                    setTimeout(() => {
+                        if (pendingResponse && !isSpeaking) {
+                            speak(pendingResponse);
+                            pendingResponse = null;
+                        }
+                    }, 100);
+                }
+            } else {
+                throw new Error('Backend request failed');
+            }
+            
+            // Only update status if not speaking
+            if (!isSpeaking) {
+                document.getElementById('statusText').textContent = 'JARVIS - Ready';
+            }
+        } catch (error) {
+            console.warn('Backend connection error, using local processing:', error);
+            
+            // Only update status if not speaking
+            if (!isSpeaking) {
+                document.getElementById('statusText').textContent = 'JARVIS - Offline Mode';
+            }
+            
+            // Fallback to local processing
+            setTimeout(() => {
+                let response = generateAIResponse(userMessage);
+                addMessageToChat(response, 'ai');
+                
+                // Speak only if not currently speaking
+                if (!isSpeaking) {
+                    speak(response);
+                }
+            }, 1000);
+        }
+    }
+
+    // PATCH: Always display all tasks from backend response
+    function updateTasksUI(backendTasks) {
+        const tasksList = document.getElementById('tasksList');
+        tasksList.innerHTML = '';
+        if (!Array.isArray(backendTasks)) return;
+        backendTasks.forEach(task => {
+            // Defensive: skip if not an object or missing description
+            if (!task || typeof task !== 'object' || !task.description) return;
+            const taskDiv = document.createElement('div');
+            taskDiv.className = 'task-item' + (task.status === 'completed' ? ' completed' : '');
+            // Show description and due_date if present
+            taskDiv.textContent = task.description + (task.due_date ? ' - ' + task.due_date : '');
+            taskDiv.onclick = function() {
+                const newStatus = task.status === 'completed' ? 'pending' : 'completed';
+                fetch('/api/tasks/update', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ task_id: task.id, status: newStatus })
+                }).then(() => {
+                    // Always reload all tasks after update
+                    fetch('/api/tasks')
+                        .then(res => res.json())
+                        .then(data => updateTasksUI(data.tasks));
+                });
+            };
+            tasksList.appendChild(taskDiv);
+        });
+    }
+
+    function updateTasksUIQuietly(backendTasks) {
+        updateTasksUI(backendTasks);
+    }
+
+    // PATCH: When loading tasks, always use the full list from backend
+    async function loadTasks() {
+        try {
+            const response = await fetch(`${BACKEND_URL}/api/tasks/all`);
+            if (response.ok) {
+                const data = await response.json();
+                updateTasksUI(data.tasks);
+            }
+        } catch (error) {
+            console.warn('Failed to load tasks from backend:', error);
+        }
+    }
+
+    async function loadTasksQuietly() {
+        try {
+            const response = await fetch(`${BACKEND_URL}/api/tasks/all`);
+            if (response.ok) {
+                const data = await response.json();
+                updateTasksUIQuietly(data.tasks);
+            }
+        } catch (error) {
+            console.warn('Failed to load tasks from backend:', error);
+        }
+    }
+
+    async function loadRemindersQuietly() {
+        try {
+            const response = await fetch(`${BACKEND_URL}/api/reminders`);
+            if (response.ok) {
+                const data = await response.json();
+                updateRemindersUIQuietly(data.reminders);
+            }
+        } catch (error) {
+            console.warn('Failed to load reminders from backend:', error);
+        }
+    }
+
+    async function loadReminders() {
+        try {
+            const response = await fetch(`${BACKEND_URL}/api/reminders`);
+            if (response.ok) {
+                const data = await response.json();
+                updateRemindersUI(data.reminders);
+            }
+        } catch (error) {
+            console.warn('Failed to load reminders from backend:', error);
+        }
+    }
+
+    // PATCH: Update UI for tasks as objects with id, description, status, etc.
+    function updateTasksUI(backendTasks) {
+        const tasksList = document.getElementById('tasksList');
+        tasksList.innerHTML = '';
+        if (!Array.isArray(backendTasks)) return;
+        backendTasks.forEach(task => {
+            // Defensive: skip if not an object or missing description
+            if (!task || typeof task !== 'object' || !task.description) return;
+            const taskDiv = document.createElement('div');
+            taskDiv.className = 'task-item' + (task.status === 'completed' ? ' completed' : '');
+            // Show description and due_date if present
+            taskDiv.textContent = task.description + (task.due_date ? ' - ' + task.due_date : '');
+            taskDiv.onclick = function() {
+                const newStatus = task.status === 'completed' ? 'pending' : 'completed';
+                fetch('/api/tasks/update', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ task_id: task.id, status: newStatus })
+                }).then(() => {
+                    // Always reload all tasks after update
+                    fetch('/api/tasks')
+                        .then(res => res.json())
+                        .then(data => updateTasksUI(data.tasks));
+                });
+            };
+            tasksList.appendChild(taskDiv);
+        });
+    }
+
+    function updateTasksUIQuietly(backendTasks) {
+        updateTasksUI(backendTasks);
+    }
+
+    function updateRemindersUI(backendReminders) {
+        const remindersList = document.getElementById('remindersList');
+        // Clear existing reminders except input
+        const existingReminders = remindersList.querySelectorAll('.reminder-item');
+        existingReminders.forEach(reminder => reminder.remove());
+        
+        backendReminders.forEach(reminder => {
+            const reminderDiv = document.createElement('div');
+            reminderDiv.className = 'reminder-item';
+            reminderDiv.textContent = `${reminder.text} - ${reminder.time}`;
+            remindersList.insertBefore(reminderDiv, remindersList.lastElementChild);
+        });
+    }
+
+    function updateRemindersUIQuietly(backendReminders) {
+        // Same as updateRemindersUI but doesn't interrupt speech
+        updateRemindersUI(backendReminders);
+    }
+
+    async function toggleTaskBackend(taskId, taskElement) {
+        const newStatus = taskElement.classList.contains('completed') ? 'pending' : 'completed';
+        
+        try {
+            const response = await fetch(`${BACKEND_URL}/api/tasks/update`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    task_id: taskId,
+                    status: newStatus
+                })
+            });
+            
+            if (response.ok) {
+                taskElement.classList.toggle('completed');
+            } else {
+                console.warn('Failed to update task status');
+            }
+        } catch (error) {
+            console.warn('Backend connection error:', error);
+            // Fallback to local toggle
+            taskElement.classList.toggle('completed');
+        }
+    }
+
+    async function sendTaskToBackend(taskText) {
+        try {
+            const response = await fetch(`${BACKEND_URL}/api/tasks`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    description: taskText,
+                    priority: 'medium'
+                })
+            });
+            
+            if (response.ok) {
+                // PATCH: Always reload tasks after adding
+                await loadTasksQuietly();
+            } else {
+                console.warn('Failed to save task to backend');
+            }
+        } catch (error) {
+            console.warn('Backend connection error:', error);
+        }
+    }
+
+    async function sendReminderToBackend(reminderText) {
+        try {
+            // Extract time from reminder text if present
+            const timeMatch = reminderText.match(/(\d{1,2}:\d{2})/);
+            const time = timeMatch ? timeMatch[1] : '';
+            const text = timeMatch ? reminderText.replace(timeMatch[0], '').trim() : reminderText;
+            
+            const response = await fetch(`${BACKEND_URL}/api/reminders`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    text: text,
+                    time: time
+                })
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Reminder saved:', data.message);
+                await loadRemindersQuietly(); // Use quiet loading
+            } else {
+                console.warn('Failed to save reminder to backend');
+            }
+        } catch (error) {
+            console.warn('Backend connection error:', error);
+        }
+    }
+
+    async function updateTaskStatus(taskText, isCompleted) {
+        // This function is for backward compatibility
+        console.log('Task status updated locally:', taskText, isCompleted);
+    }
+
+    // System status monitoring with speech protection
+    async function checkSystemStatus() {
+        try {
+            const response = await fetch(`${BACKEND_URL}/api/status`);
+            if (response.ok) {
+                const data = await response.json();
+                updateSystemStatusQuietly(data);
+            }
+        } catch (error) {
+            console.warn('Cannot reach backend:', error);
+            // Only update status if not speaking
+            if (!isSpeaking) {
+                document.getElementById('statusText').textContent = 'JARVIS - Offline Mode';
+            }
+        }
+    }
+
+    function updateSystemStatusQuietly(statusData) {
+        // Only update status if not speaking
+        if (!isSpeaking) {
+            if (statusData.jarvis_initialized) {
+                document.getElementById('statusText').textContent = 'JARVIS - Online';
+            } else {
+                document.getElementById('statusText').textContent = 'JARVIS - Backend Error';
+            }
+        }
+    }
+
+    function updateSystemStatus(statusData) {
+        if (statusData.jarvis_initialized) {
+            document.getElementById('statusText').textContent = 'JARVIS - Online';
+        } else {
+            document.getElementById('statusText').textContent = 'JARVIS - Backend Error';
+        }
+    }
+
+    // System resource monitoring
+    function updateSystemResources() {
+        // Simulate system resource usage
+        const cpu = Math.floor(Math.random() * 30) + 30; // 30-60%
+        const ram = Math.floor(Math.random() * 40) + 40; // 40-80%
+        const network = Math.floor(Math.random() * 50) + 10; // 10-60%
+        const storage = Math.floor(Math.random() * 20) + 70; // 70-90%
+        
+        const cpuElement = document.getElementById('cpuUsage');
+        const ramElement = document.getElementById('ramUsage');
+        const networkElement = document.getElementById('networkUsage');
+        const storageElement = document.getElementById('storageUsage');
+        
+        if (cpuElement) {
+            cpuElement.style.width = cpu + '%';
+            document.getElementById('cpuText').textContent = cpu + '%';
+        }
+        
+        if (ramElement) {
+            ramElement.style.width = ram + '%';
+            document.getElementById('ramText').textContent = ram + '%';
+        }
+        
+        if (networkElement) {
+            networkElement.style.width = network + '%';
+            document.getElementById('networkText').textContent = network + '%';
+        }
+        
+        if (storageElement) {
+            storageElement.style.width = storage + '%';
+            document.getElementById('storageText').textContent = storage + '%';
+        }
+    }
+
+    // Initialize the interface - ENHANCED to prevent all form submissions
+    async function initialize() {
+        // Prevent ALL form submissions from causing page refresh
+        document.addEventListener('submit', function(e) {
+            console.log('Form submission prevented:', e.target);
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            return false;
+        }, true); // Use capture phase
+
+        // Also prevent default action on all forms
+        const forms = document.querySelectorAll('form');
+        forms.forEach(form => {
+            form.addEventListener('submit', function(e) {
+                console.log('Form submission prevented on form:', e.target);
+                e.preventDefault();
+                return false;
+            });
+            
+            // Set onsubmit to prevent submission
+            form.onsubmit = function() {
+                return false;
+            };
+        });
+
+        // Load voices for speech synthesis
+        if ('speechSynthesis' in window) {
+            speechSynthesis.onvoiceschanged = function() {
+                // Voices loaded
+            };
+        }
+        
+        // Check backend connection
+        await checkSystemStatus();
+        
+        // Load initial data from backend
+        await loadTasks();
+        await loadReminders();
+        
+        // Start system resource monitoring
+        updateSystemResources();
+        setInterval(updateSystemResources, 5000);
+        
+        // Check system status periodically (but quietly)
+        setInterval(checkSystemStatus, 30000);
+        
+        // Initial greeting with delay to ensure everything is loaded
+        setTimeout(() => {
+            if (!isSpeaking) {
+                speak("JARVIS interface initialized. All systems online.");
+            }
+        }, 2000);
+    }
+
+    // ENHANCED: Multiple event listeners to prevent page refresh
+    document.addEventListener('DOMContentLoaded', function() {
+        initialize();
+
+        // Prevent all form submissions at document level
+        document.addEventListener('submit', function(e) {
+            console.log('Document level form submission prevented');
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }, true);
+
+        // Prevent beforeunload if there are pending operations
+        window.addEventListener('beforeunload', function(e) {
+            if (isSpeaking) {
+                e.preventDefault();
+                e.returnValue = '';
+                return '';
+            }
+        });
+        
+        // PATCH: On refresh, do not call loadTasks, just show welcome message
+    });
+
+    // Handle page visibility changes to manage speech
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden && isSpeaking) {
+            // Page is hidden, pause speech if needed
+            speechSynthesis.pause();
+        } else if (!document.hidden && speechSynthesis.paused) {
+            // Page is visible again, resume speech
+            speechSynthesis.resume();
+        }
+    });
+
+    // Global error handler to catch any unhandled errors
+    window.addEventListener('error', function(e) {
+        console.error('Global error:', e);
+        // Don't let errors cause page refresh
+        e.preventDefault();
+        return false;
+    });
+
+    // Prevent unhandled promise rejections from causing reloads
+    window.addEventListener('unhandledrejection', function(e) {
+        console.error('Unhandled promise rejection:', e.reason);
+        e.preventDefault();
+        return false;
+    });
+
+    // --- PATCH: Prevent any accidental reloads or navigation ---
+
+    // Disable F5, Ctrl+R, Cmd+R, and navigation keys
+    window.addEventListener('keydown', function(e) {
+        // F5 or Ctrl/Cmd+R
+        if (
+            e.key === 'F5' ||
+            ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'r')
+        ) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.warn('Page reload prevented by keydown');
+            return false;
+        }
+        // Prevent Backspace navigation (when not in input/textarea)
+        if (e.key === 'Backspace') {
+            const el = document.activeElement;
+            if (
+                !el ||
+                (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA' && !el.isContentEditable)
+            ) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+        }
+    }, true);
+
+    // Prevent all anchor clicks that would navigate
+    document.addEventListener('click', function(e) {
+        let target = e.target;
+        while (target && target !== document) {
+            if (target.tagName === 'A' && target.href && !target.href.startsWith('#')) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.warn('Navigation prevented:', target.href);
+                return false;
+            }
+            target = target.parentNode;
+        }
+    }, true);
+
+    // Patch history API to prevent navigation
+    const originalPushState = history.pushState;
+    history.pushState = function() {
+        console.warn('history.pushState prevented');
+        return false;
+    };
+    const originalReplaceState = history.replaceState;
+    history.replaceState = function() {
+        console.warn('history.replaceState prevented');
+        return false;
+    };
+
+    // Patch location.assign and location.replace
+    window.location.assign = function() {
+        console.warn('window.location.assign prevented');
+        return false;
+    };
+    window.location.replace = function() {
+        console.warn('window.location.replace prevented');
+        return false;
+    };
+
+    // Patch window.location.href setter
+    Object.defineProperty(window.location, 'href', {
+        set: function() {
+            console.warn('window.location.href set prevented');
+            return false;
+        }
+    });
+
+    // --- END PATCH ---
+
+    // Voice mode permission logic
+    let micPermissionAsked = false;
+    let micPermissionGranted = false;
+    let micPermissionPromise = null;
+
+    // Patch: Also update center voice mode UI on recognition events
+    if (recognition) {
+        recognition.onstart = function() {
+            document.getElementById('statusText').textContent = 'JARVIS - Listening...';
+            document.getElementById('voiceAnimation').classList.add('voice-active');
+            // REMOVE stopMicBtn logic
+            // document.getElementById('stopMicBtn').style.display = '';
+            const micBtn = document.getElementById('voiceBtn');
+            if (micBtn) {
+                micBtn.style.background = "linear-gradient(135deg, #ff4444, #cc0000)";
+                micBtn.textContent = '🔴';
+            }
+        };
+        recognition.onend = function() {
+            document.getElementById('voiceAnimation').classList.remove('voice-active');
+            if (!isSpeaking) {
+                document.getElementById('statusText').textContent = 'JARVIS - Ready';
+            }
+            isVoiceEnabled = false;
+            const micBtn = document.getElementById('voiceBtn');
+            if (micBtn) {
+                micBtn.style.background = "linear-gradient(135deg, var(--success), #00cc66)";
+                micBtn.textContent = '🎤';
+            }
+            // REMOVE stopMicBtn logic
+            // document.getElementById('stopMicBtn').style.display = 'none';
+            // Auto-restart voice mode if enabled and not speaking
+            if (autoVoiceMode && !isSpeaking) {
+                setTimeout(() => {
+                    if (!isVoiceEnabled && autoVoiceMode) {
+                        recognition.start();
+                        isVoiceEnabled = true;
+                        if (micBtn) {
+                            micBtn.style.background = "linear-gradient(135deg, #ff4444, #cc0000)";
+                            micBtn.textContent = '🔴';
+                        }
+                        document.getElementById('stopMicBtn').style.display = '';
+                    }
+                }, 500);
+            }
+        };
+    }
+    // ...existing code...
+</script>
+<!-- ...existing code... -->
