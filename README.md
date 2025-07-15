@@ -89,3 +89,7 @@ Jarvis_Project/
 For best voice experience, use Chrome or Edge browsers.
 Data is stored in jarvis_data/ as Excel and pickle files.
 Make sure your API keys are valid and have sufficient quota.
+
+### RESULT :
+
+“A functional AI-based virtual assistant (J.A.R.V.I.S) was successfully conceptualized and partially implemented using Python. The assistant is capable of recognizing voice commands, processing natural language, and performing basic system tasks like opening applications, searching the web, and providing real-time information such as time, weather, and news. This project demonstrates the integration of speech recognition, text-to-speech, API usage, and automation into a single personalized AI assistant system.”
