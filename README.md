@@ -109,3 +109,8 @@ Jarvis_Project/
 
 MIT License
 
+## OUTPUT :
+
+<img width="1913" height="948" alt="image" src="https://github.com/user-attachments/assets/0c90a249-9397-45bb-b1de-89617b1be083" />
+
+
